@@ -48,3 +48,6 @@ int main() {
 ## How can I contribute?
 We welcome your contributions. If there is a software problem, do not hesitate to tell us and we will do our best.
 We are always open to participation in our team. Please contact us on [Discord](https://discord.gg/mepa8X7j6w) or [Mail](mailto:p0unter@proton.me). We are always open to new ideas
+- Create an [issue page](https://github.com/trycatchh/lower/issues) related to the problem.
+- Request a suggestion: please submit your suggestion via the [issue page](https://github.com/trycatchh/lower/issues).
+- Join us, [active team](https://github.com/trycatchh/lower/graphs/contributors).
