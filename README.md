@@ -9,6 +9,7 @@
 - [What is Lower?](https://img.shields.io/github/license/trycatchh/lower?style=flat-square)
 - [Installation](https://github.com/trycatchh/lower/edit/main/README.md#installation)
 - [For Example](https://github.com/trycatchh/lower/edit/main/README.md#beginning)
+- [How can I contribute?](https://github.com/trycatchh/lower/edit/main/README.md#how-can-i-contribute)
 
 ## What is Lower?
 Lower Framework is a lightweight, modular web framework written in C that speeds up development with its flexibility and high performance. It allows you to customize and extend modules easily to fit your needs. With [LowPM](https://trycatch.network), integrating external libraries and managing modules becomes simple and efficient, making your projects faster and more maintainable.
@@ -43,3 +44,7 @@ int main() {
   return 0;
 }
 ```
+
+## How can I contribute?
+We welcome your contributions. If there is a software problem, do not hesitate to tell us and we will do our best.
+We are always open to participation in our team. Please contact us on [Discord](https://discord.gg/mepa8X7j6w) or [Mail](mailto:p0unter@proton.me). We are always open to new ideas
