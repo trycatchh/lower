@@ -7,7 +7,7 @@
 [📦 LowPM (Package Manager)](https://trycatch.network/) । [📚 Docs](https://trycatch.network/) । [👥 Community](https://trycatch.network/) । [🤝 Join Us](https://trycatch.network/)
 
 - [What is Lower?](https://github.com/trycatchh/lower?tab=readme-ov-file#what-is-lower)
-- [Getting Started & Integration](https://github.com/trycatchh/lower?tab=readme-ov-file#installation)
+- [Getting Started & Integration](https://github.com/trycatchh/lower/blob/main/README.md#getting-started--integration)
 - [For Example](https://github.com/trycatchh/lower?tab=readme-ov-file#for-example)
 - [How can I contribute?](https://github.com/trycatchh/lower?tab=readme-ov-file#how-can-i-contribute)
 - [License (MIT)](https://github.com/trycatchh/lower?tab=readme-ov-file#license)
