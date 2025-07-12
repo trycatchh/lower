@@ -10,6 +10,7 @@
 - [Installation](https://github.com/trycatchh/lower?tab=readme-ov-file#installation)
 - [For Example](https://github.com/trycatchh/lower?tab=readme-ov-file#for-example)
 - [How can I contribute?](https://github.com/trycatchh/lower?tab=readme-ov-file#how-can-i-contribute)
+- License (MIT)
 
 ## What is Lower?
 Lower Framework is a lightweight, modular web framework written in C that speeds up development with its flexibility and high performance. It allows you to customize and extend modules easily to fit your needs. With [LowPM](https://trycatch.network), integrating external libraries and managing modules becomes simple and efficient, making your projects faster and more maintainable.
@@ -51,3 +52,8 @@ We are always open to participation in our team. Please contact us on [Discord](
 - Create an [issue page](https://github.com/trycatchh/lower/issues) related to the problem.
 - Request a suggestion: please submit your suggestion via the [issue page](https://github.com/trycatchh/lower/issues).
 - Join us, [active team](https://github.com/trycatchh/lower/graphs/contributors).
+
+## License
+This project is licensed under the [MIT License](https://github.com/trycatchh/lower/blob/main/LICENSE), a permissive open-source license that lets you freely use, modify, and distribute the software. You must include the original copyright and license notice in any copies or substantial portions of the software.
+
+The license provides the software "as is," without any warranty, protecting the authors from liability. Its simplicity and flexibility make it widely used and trusted in the open-source community.
