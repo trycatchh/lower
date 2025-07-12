@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/github/license/trycatchh/lower?style=flat-square)
 [![Issue](https://img.shields.io/github/issues/trycatchh/lower/good%20first%20issue?style=flat-square&color=%232EA043&label=Issue)](https://github.com/trycatchh/lower/labels/good%20first%20issue)
 
-[LowPM (Package Manager)](https://trycatch.network/) · [Docs](https://trycatch.network/) · [Community](https://trycatch.network/) · [Join Us](https://trycatch.network/)
+[📦 LowPM (Package Manager)](https://trycatch.network/) । [📚 Docs](https://trycatch.network/) । [👥 Community](https://trycatch.network/) । [🤝 Join Us](https://trycatch.network/)
 
 - [What is Lower?](https://github.com/trycatchh/lower?tab=readme-ov-file#what-is-lower)
 - [Installation](https://github.com/trycatchh/lower?tab=readme-ov-file#installation)
