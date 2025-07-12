@@ -7,7 +7,7 @@
 [📦 LowPM (Package Manager)](https://trycatch.network/) । [📚 Docs](https://trycatch.network/) । [👥 Community](https://trycatch.network/) । [🤝 Join Us](https://trycatch.network/)
 
 - [What is Lower?](https://github.com/trycatchh/lower?tab=readme-ov-file#what-is-lower)
-- [Installation](https://github.com/trycatchh/lower?tab=readme-ov-file#installation)
+- [Getting Started & Integration](https://github.com/trycatchh/lower?tab=readme-ov-file#installation)
 - [For Example](https://github.com/trycatchh/lower?tab=readme-ov-file#for-example)
 - [How can I contribute?](https://github.com/trycatchh/lower?tab=readme-ov-file#how-can-i-contribute)
 - [License (MIT)](https://github.com/trycatchh/lower?tab=readme-ov-file#license)
@@ -15,7 +15,7 @@
 ## What is Lower?
 Lower Framework is a lightweight, modular web framework written in C that speeds up development with its flexibility and high performance. It allows you to customize and extend modules easily to fit your needs. With [LowPM](https://trycatch.network), integrating external libraries and managing modules becomes simple and efficient, making your projects faster and more maintainable.
 
-## Installation
+## Getting Started & Integration
 Include basic modules for run
 ```shell
 git clone https://github.com/trycatchh/lower.git
