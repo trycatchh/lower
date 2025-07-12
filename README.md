@@ -29,20 +29,28 @@ To add libraries, please refer to the [documentation of the LowPM](https://tryca
 ## For Example
 ##### Create a handler
 ```c
-void hello_handler(Request *req, Response *res) {
-  res->status = 200;                          // HTTP status code
-  res->content = "text/plain";                // Content-Type header
-  res->body = "Hello from Lower Framework";   // Response body
+void hello_handler(http_request_t *req, http_response_t *res) {
+    lw_set_header(res, "Content-Type: text/plain");
+    lw_set_body(res, "Hello from Lower Web Framework!");
+}
+void json_handler(http_request_t *req, http_response_t *res) {
+    lw_set_header(res, "Content-Type: application/json");
+    lw_set_body(res, "{\"message\": \"Hello JSON!\", \"framework\": \"Lower Web Framework\"}");
+}
+void about_handler(http_request_t *req, http_response_t *res) {
+    lw_set_header(res, "Content-Type: text/html");
+    lw_set_body(res, "<h1>About Lower Web Framework</h1><p>A simple C web framework</p>");
 }
 ```
 ##### Register the handler and run the server
 ```c
 int main() {
-  LW_Server *server = lw_run(8080);           // Create and start server on port 8080
-  lw_route(server, "/hello", hello_handler);  // Register route and handler
-  lw_start(server);                           // Start handling requests
-
-  return 0;
+    lw_route(GET, "/", hello_handler);
+    lw_route(GET, "/hello", hello_handler);
+    lw_route(GET, "/json", json_handler);
+    lw_route(GET, "/about", about_handler);
+    
+    return lw_run(8080);
 }
 ```
 
