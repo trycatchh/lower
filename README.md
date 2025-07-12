@@ -2,7 +2,8 @@
     <img height="120" alt="lower-logo" src="https://github.com/user-attachments/assets/f5098fac-bbdb-4746-8d3e-b0da1a4b4af4" />
 </div>
 
-# Lower Web Framework
+<h1 align="center">Lower Web Framework</h1>
+
 ![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)
 ![License](https://img.shields.io/github/license/trycatchh/lower?style=flat-square)
 [![Issue](https://img.shields.io/github/issues/trycatchh/lower/good%20first%20issue?style=flat-square&color=%232EA043&label=Issue)](https://github.com/trycatchh/lower/labels/good%20first%20issue)
