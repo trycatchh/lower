@@ -90,4 +90,6 @@ char* load_html_file(const char* filename);
 void render_html(http_response_t *res, const char* filename);
 void static_file_handler(http_request_t *req, http_response_t *res);
 
+int parameter_controller(int argc, char *argv[]);
+
 #endif // RUN_H
