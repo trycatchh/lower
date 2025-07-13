@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Lower Web Framework</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x"
+        href="https://github-production-user-asset-6210df.s3.amazonaws.com/138019503/465664340-f5098fac-bbdb-4746-8d3e-b0da1a4b4af4.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250713%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250713T184011Z&X-Amz-Expires=300&X-Amz-Signature=5f7e63c4c71a3f1dfb05a2f77ec99c0b02b0d31b2c0643ca537016e569ee5223&X-Amz-SignedHeaders=host">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 720px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f9f9f9;
+            color: #24292f;
+        }
+
+        pre {
+            background: #eee;
+            padding: 1rem;
+            overflow-x: auto;
+            border-radius: 6px;
+        }
+
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="readme" style="padding-bottom: 10px;">
+        <div align="center" style="padding-top: 10px;">
+            <h1>Lower WF ❤️</h1>
+            Loading...
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+
+    <script>
+        async function fetchReadme(owner, repo) {
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/readme`;
+            try {
+                const res = await fetch(apiUrl, {
+                    headers: { Accept: 'application/vnd.github.v3.raw' }
+                });
+                if (!res.ok) throw new Error('Failed to fetch README');
+                const markdown = await res.text();
+
+                const md = window.markdownit({
+                    html: true,
+                    linkify: true,
+                    typographer: true
+                });
+                const html = md.render(markdown);
+
+                document.getElementById('readme').innerHTML = html;
+            } catch (err) {
+                document.getElementById('readme').textContent = 'Error loading README: ' + err.message;
+            }
+        }
+
+        fetchReadme('trycatchh', 'lower');
+    </script>
+</body>
+
+</html>

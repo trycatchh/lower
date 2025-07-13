@@ -85,4 +85,9 @@ void free_response(http_response_t *response);
 const char *method_to_string(http_method_t method);
 route_t *find_route(http_method_t method, const char *path);
 
+// File Serve
+char* load_html_file(const char* filename);
+void render_html(http_response_t *res, const char* filename);
+void static_file_handler(http_request_t *req, http_response_t *res);
+
 #endif // RUN_H

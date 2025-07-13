@@ -1,7 +1,5 @@
 #include "run.h"
 
-lw_context_t lw_ctx = {0};
-
 int lw_run(int port) {
     struct sockaddr_in address;
     int addr_len = sizeof(address);

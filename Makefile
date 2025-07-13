@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -std=c99 -g
 TARGET=lwserver
-SOURCES=main.c socket.c handler.c parser.c utils.c
+SOURCES=main.c socket.c handler.c parser.c utils.c html_handler.c
 OBJDIR=build
 OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(SOURCES))
 
