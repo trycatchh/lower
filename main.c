@@ -12,6 +12,8 @@ int main() {
     printf("[LW] HTML Handler System\n");
     
     lw_route(GET, "/", index_handler);
+    lw_route(GET, "/css/style.css", static_file_handler);
+    lw_route(GET, "/js/app.js", static_file_handler);
 
     printf("[LW] Routes registered successfully!\n");
     printf("[lw] HTML files will be loaded from ./public/html/\n");

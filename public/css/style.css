@@ -1,0 +1,24 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    background: #f9f9f9;
+    color: #24292f;
+}
+
+pre {
+    background: #eee;
+    padding: 1rem;
+    overflow-x: auto;
+    border-radius: 6px;
+}
+
+a {
+    color: #0366d6;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
