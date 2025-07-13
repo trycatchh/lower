@@ -39,7 +39,7 @@ int lw_run(int port) {
         return -1;
     }
 
-    printf("[LW] Server is listening on port %d\n", port);
+    printf("[LW] Server is listening on port http://localhost:%d\n", port);
     
     while (1) {
         int client_socket = accept(lw_ctx.server_fd, (struct sockaddr *)&address, (socklen_t *)&addr_len);
