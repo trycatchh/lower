@@ -44,7 +44,7 @@ int main() {
     lw_route(GET, "/css/style.css", static_file_handler);
     lw_route(GET, "/js/app.js", static_file_handler);
     
-    return lw_run(8080);
+    return lw_run(parameter_controller(argc, argv));
 }
 ```
 
