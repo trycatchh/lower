@@ -7,7 +7,7 @@
 ![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)
 ![License](https://img.shields.io/github/license/trycatchh/lower?style=flat-square)
 
-[📦 LowPM (Package Manager)](https://trycatch.network/) । [📚 Docs](https://trycatch.network/) । [👥 Community](https://trycatch.network/) । [🤝 Join Us](https://trycatch.network/)
+[📦 LowPM (Package Manager)](https://github.com/trycatchh/lowerpm) । [📚 Docs](https://github.com/trycatchh/lower/blob/main/README.md) । [👥 Community](https://discord.gg/mepa8X7j6w) । [🤝 Join Us](https://discord.gg/mepa8X7j6w)
 
 - [What is Lower?](https://github.com/trycatchh/lower?tab=readme-ov-file#what-is-lower)
 - [Getting Started & Integration](https://github.com/trycatchh/lower?tab=readme-ov-file#getting-started--integration)
@@ -19,11 +19,15 @@
 Lower Framework is a lightweight, modular web framework written in C that speeds up development with its flexibility and high performance. It allows you to customize and extend modules easily to fit your needs. With [LowPM](https://trycatch.network), integrating external libraries and managing modules becomes simple and efficient, making your projects faster and more maintainable.
 
 ## Getting Started & Integration
-Include basic modules for run
+### Use LW Structure
+> [Copy the project](https://github.com/trycatchh/lower.git) directly and stand it up. All the structures that should be in the project will come, just commit your project on it.
+
+### Include Your Project
+> Include basic modules for run
 ```shell
 git clone https://github.com/trycatchh/lower.git
 ```
-Add the library to your code file
+> Add the library to your code file
 ```c
 #include "lower/run.h" // Runtime module
 ```
