@@ -43,10 +43,11 @@ void index_handler(http_request_t *req, http_response_t *res) {
 ```
 ##### Register the handler and run the server
 ```c
-int main() {
+lw_context_t lw_ctx = {0};
+int main(int argc, char *argv[]) {
+    parameter_controller(argc, argv);
+    use_static_files();
     lw_route(GET, "/", index_handler);
-    lw_route(GET, "/css/style.css", static_file_handler);
-    lw_route(GET, "/js/app.js", static_file_handler);
     
     return lw_run(parameter_controller(argc, argv));
 }
