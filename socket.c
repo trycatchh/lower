@@ -41,7 +41,7 @@ int lw_run(int port) {
         return -1;
     }
 
-    printf("[LW] Server is listening on port http://localhost:%d\n", port);
+    printf("[LW] Server is listening on http://localhost:%d\n", port);
     
     while (1) {
         int client_socket = accept(lw_ctx.server_fd, (struct sockaddr *)&address, (socklen_t *)&addr_len);
@@ -58,8 +58,19 @@ int lw_run(int port) {
             close(client_socket);
             continue;
         }
+        
+        char ipstring[INET_ADDRSTRLEN];
+        getpeername(lw_ctx.server_fd, (struct sockaddr*)&address, (socklen_t *)&addr_len);
+        struct sockaddr_in *s = (struct sockaddr_in *) &address;
+        inet_ntop(AF_INET, &s->sin_addr, ipstring, sizeof(ipstring));
 
-        printf("[LW] Incoming request:\n%s\n", buffer);
+        if (strcmp(ipstring, "127.0.0.1")== 0) {
+            addr_len = sizeof(addr_len);
+            getsockname(client_socket, (struct sockaddr *)&address, (socklen_t *)&addr_len);
+            inet_ntop(AF_INET, &s->sin_addr, ipstring, sizeof(ipstring));
+        }
+
+        LW_VERBOSE ? printf("[LW] Incoming request:\nIP: %s\n%s\n", ipstring, buffer) : printf("[LW] Incoming request: IP: %s\n", ipstring);
 
         // Parse request
         http_request_t request = {0};

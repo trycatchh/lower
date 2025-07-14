@@ -14,8 +14,8 @@
 #define MAX_PATH_LENGTH 256
 
 // Global Variables
-extern int FW_PORT;
-extern int FW_VERBOSE;
+extern int LW_PORT;
+extern int LW_VERBOSE;
 
 // HTTP method enumeration
 typedef enum {

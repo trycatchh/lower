@@ -7,9 +7,9 @@
 #include <errno.h>
 #include <limits.h>
 
-int FW_PORT;
-int FW_VERBOSE;
-int FW_DEV_MODE = 0; // Dev mode flag
+int LW_PORT;
+int LW_VERBOSE;
+int LW_DEV_MODE = 0; // Dev mode flag
 
 const char *method_to_string(http_method_t method)
 {
@@ -78,9 +78,9 @@ static int safe_strtoi(const char *str, int min, int max)
 
 int parameter_controller(int argc, char *argv[])
 {
-    FW_PORT = 8080;
-    FW_VERBOSE = 0;
-    FW_DEV_MODE = 0;
+    LW_PORT = 8080;
+    LW_VERBOSE = 0;
+    LW_DEV_MODE = 0;
 
     int opt;
     int temp_val;
@@ -118,10 +118,10 @@ int parameter_controller(int argc, char *argv[])
                 exit(EXIT_FAILURE);
             }
 
-            FW_PORT = temp_val;
+            LW_PORT = temp_val;
             break;
         case 'v':
-            FW_VERBOSE = 1;
+            LW_VERBOSE = 1;
             break;
         case 'h':
             break;
@@ -139,7 +139,7 @@ int parameter_controller(int argc, char *argv[])
             }
             break;
         case 'd':
-            FW_DEV_MODE = 1;
+            LW_DEV_MODE = 1;
             printf("[LW] Enable Development Mode (Hot Refresh)\n");
             start_live_reload_server(3131, "./public");
             break;

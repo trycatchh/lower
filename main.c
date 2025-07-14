@@ -22,5 +22,5 @@ int main(int argc, char *argv[]) {
     printf("[LW] HTML files will be loaded from ./public/html/\n");
     printf("[LW] Static files will be loaded from ./public/\n");
 
-    return lw_run(FW_PORT);
+    return lw_run(LW_PORT);
 }

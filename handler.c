@@ -14,7 +14,7 @@ void lw_route(http_method_t method, const char *path, route_handler_t handler) {
     
     lw_ctx.route_count++;
     
-    printf("[LW] Route registered: %s %s\n", method_to_string(method), path);
+    LW_VERBOSE ? printf("[LW] Route registered: %s %s\n", method_to_string(method), path) : 0;
 }
 
 void lw_send_response(http_response_t *response, int client_socket) {
