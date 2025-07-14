@@ -9,6 +9,8 @@ void index_handler(http_request_t *req, http_response_t *res) {
 
 int main(int argc, char *argv[]) {
     
+    parameter_controller(argc, argv);
+
     printf("[LW] Starting Lower Web Framework...\n");
     printf("[LW] HTML Handler System\n");
     
@@ -20,5 +22,5 @@ int main(int argc, char *argv[]) {
     printf("[LW] HTML files will be loaded from ./public/html/\n");
     printf("[LW] Static files will be loaded from ./public/\n");
 
-    return lw_run(parameter_controller(argc, argv));
+    return lw_run(FW_PORT);
 }

@@ -13,6 +13,10 @@
 #define BUFFER_SIZE 4096
 #define MAX_PATH_LENGTH 256
 
+// Global Variables
+extern int FW_PORT;
+extern int FW_VERBOSE;
+
 // HTTP method enumeration
 typedef enum {
     GET,
@@ -91,5 +95,7 @@ void render_html(http_response_t *res, const char* filename);
 void static_file_handler(http_request_t *req, http_response_t *res);
 
 int parameter_controller(int argc, char *argv[]);
+
+void print_help();
 
 #endif // RUN_H
