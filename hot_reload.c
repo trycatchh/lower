@@ -31,11 +31,28 @@ void notify_clients_reload() {
     printf("[DEV] Notifying %d clients to reload...\n", ws_client_count);
     for (int i = 0; i < ws_client_count; ) {
         int fd = ws_clients[i];
-        // WebSocket frame for "reload" message
-        char msg[] = {0x81, 0x06, 'r', 'e', 'l', 'o', 'a', 'd'};
+        
+        // Check if the socket is still open
+        int error = 0;
+        socklen_t len = sizeof(error);
+        getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len);
+        if (error != 0) {
+            printf("[DEV] Client %d already disconnected (error: %s)\n", i, strerror(error));
+            close(fd);
+            ws_clients[i] = ws_clients[--ws_client_count];
+            continue;
+        }
+
+        // Correct WebSocket frame: FIN=1, opcode=1 (text), and payload length=6, no masking
+        char msg[] = {
+            0x81, // FIN=1, opcode=1 (text frame)
+            0x06, // Mask=0 and payload length=6
+            'r', 'e', 'l', 'o', 'a', 'd'
+        };
+        
         ssize_t sent = send(fd, msg, sizeof(msg), MSG_NOSIGNAL);
         if (sent < 0) {
-            printf("[DEV] Client %d disconnected (error: %s), removing from list\n", i, strerror(errno));
+            printf("[DEV] Send error to client %d: %s\n", i, strerror(errno));
             close(fd);
             ws_clients[i] = ws_clients[--ws_client_count];
         } else {
@@ -139,9 +156,15 @@ void* watch_thread(void* arg) {
                     !strstr(event->name, ".swp") &&
                     !strstr(event->name, ".tmp")) {
                     
-                    printf(" -> TRIGGERING RELOAD");
-                    notify_clients_reload();
-                    events_processed++;
+                    // Only watch specific extensions
+                    const char *ext = strrchr(event->name, '.');
+                    if (ext && (strcmp(ext, ".html") == 0 || 
+                                strcmp(ext, ".css") == 0 || 
+                                strcmp(ext, ".js") == 0)) {
+                        printf(" -> TRIGGERING RELOAD");
+                        notify_clients_reload();
+                        events_processed++;
+                    }
                 }
             }
             printf("\n");
@@ -307,6 +330,43 @@ void start_live_reload_server(int ws_port, const char* watch_dir) {
     printf("[DEV] Starting live reload system...\n");
     printf("[DEV] WebSocket port: %d\n", ws_port);
     printf("[DEV] Watch directory: %s\n", watch_dir);
+    
+    // Check if port is available
+    int test_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (test_fd >= 0) {
+        struct sockaddr_in test_addr = {0};
+        test_addr.sin_family = AF_INET;
+        test_addr.sin_addr.s_addr = INADDR_ANY;
+        test_addr.sin_port = htons(ws_port);
+        
+        if (bind(test_fd, (struct sockaddr*)&test_addr, sizeof(test_addr))) {
+            printf("[DEV] Port %d is in use, trying %d\n", ws_port, ws_port + 1);
+            close(test_fd);
+            ws_port += 1; // Try next port
+            
+            // Create a new socket for the next port
+            test_fd = socket(AF_INET, SOCK_STREAM, 0);
+            if (test_fd < 0) {
+                printf("[DEV] Failed to create test socket for port %d: %s\n", ws_port, strerror(errno));
+                return;
+            }
+            
+            test_addr.sin_port = htons(ws_port);
+            if (bind(test_fd, (struct sockaddr*)&test_addr, sizeof(test_addr))) {
+                printf("[DEV] Port %d also in use, giving up\n", ws_port);
+                close(test_fd);
+                return;
+            }
+        }
+        close(test_fd);
+    } else {
+        printf("[DEV] Failed to create test socket: %s\n", strerror(errno));
+        return;
+    }
+    
+    // Update port copy
+    port_copy = ws_port;
+    printf("[DEV] Using WebSocket port: %d\n", ws_port);
     
     // Check if directory exists
     struct stat st;

@@ -16,6 +16,8 @@
 // Global Variables
 extern int LW_PORT;
 extern int LW_VERBOSE;
+extern int LW_DEV_MODE;
+extern int LW_WS_PORT;
 
 // HTTP method enumeration
 typedef enum {

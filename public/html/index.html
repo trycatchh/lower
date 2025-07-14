@@ -3,15 +3,15 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Lower Web Framework</title>
+    <title>Lower WF ❤️</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x"
-        href="https://github-production-user-asset-6210df.s3.amazonaws.com/138019503/465664340-f5098fac-bbdb-4746-8d3e-b0da1a4b4af4.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250713%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250713T184011Z&X-Amz-Expires=300&X-Amz-Signature=5f7e63c4c71a3f1dfb05a2f77ec99c0b02b0d31b2c0643ca537016e569ee5223&X-Amz-SignedHeaders=host">
+        href="https://github-production-user-asset-6210df.s3.amazonaws.com/138019503/465991285-7722b447-088b-4379-8521-710e7da412e3.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20250714%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250714T222728Z&X-Amz-Expires=300&X-Amz-Signature=b8c3daec0b8a13fe7cbe97aeef39916cb4e1716d174b23f3bafe01475c6e1c0d&X-Amz-SignedHeaders=host">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet" />
     <link rel="stylesheet" href="../css/style.css">
 </head>
 
-<body>
+<body style="padding-top: 0 !important;">
     <div id="readme" style="padding-bottom: 10px;">
         <div align="center" style="padding-top: 10px;">
             <h1>Lower WF ❤️</h1>
@@ -19,8 +19,53 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+    <!-- For Dev Mod 
+    <script>
+        (function () {
+            if (window.location.hostname !== 'localhost' &&
+                window.location.hostname !== '127.0.0.1') {
+                return;
+            }
 
+            const isSecure = window.location.protocol === 'https:';
+            const wsProtocol = isSecure ? 'wss://' : 'ws://';
+            const wsPort = parseInt(window.location.port) + 1000;
+            const wsUrl = `${wsProtocol}${window.location.hostname}:${wsPort}`;
+
+            console.log('[DEV] Connecting to:', wsUrl);
+            let reconnectAttempts = 0;
+
+            function connect() {
+                const ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('[DEV] WebSocket connected');
+                    reconnectAttempts = 0;
+                };
+
+                ws.onmessage = (event) => {
+                    if (event.data === 'reload') {
+                        console.log('[DEV] Reloading page...');
+                        window.location.reload(true); // Cache bypass
+                    }
+                };
+
+                ws.onclose = () => {
+                    const delay = Math.min(3000, 1000 * Math.pow(2, reconnectAttempts));
+                    console.log(`[DEV] WebSocket closed. Reconnecting in ${delay}ms...`);
+                    setTimeout(connect, delay);
+                    reconnectAttempts++;
+                };
+
+                ws.onerror = (error) => {
+                    console.error('[DEV] WebSocket error:', error);
+                };
+            }
+
+            connect();
+        })();
+    </script> -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
     <script src="../js/app.js"></script>
 </body>
 

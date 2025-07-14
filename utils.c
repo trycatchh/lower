@@ -140,8 +140,8 @@ int parameter_controller(int argc, char *argv[])
             break;
         case 'd':
             LW_DEV_MODE = 1;
-            printf("[LW] Enable Development Mode (Hot Refresh)\n");
-            start_live_reload_server(3131, "./public");
+            // printf("[LW] Enable Development Mode (Hot Refresh)\n");
+            // start_live_reload_server(LW_PORT + 1000, "./public");
             break;
         default:
             fprintf(stderr, "[ERR] Usage: %s [-p port] [-v] [-d]\n", argv[0]);
