@@ -10,30 +10,31 @@
 [📦 LowPM (Package Manager)](https://github.com/trycatchh/lowerpm) । [📚 Docs](https://github.com/trycatchh/lower/blob/main/README.md) । [👥 Community](https://discord.gg/mepa8X7j6w) । [🤝 Join Us](https://discord.gg/mepa8X7j6w)
 
 - [What is Lower?](https://github.com/trycatchh/lower?tab=readme-ov-file#what-is-lower)
-- [Getting Started & Integration](https://github.com/trycatchh/lower?tab=readme-ov-file#getting-started--integration)
-- [For Example](https://github.com/trycatchh/lower?tab=readme-ov-file#for-example)
+- [Getting Started](https://github.com/trycatchh/lower?tab=readme-ov-file#getting-started)
+- [Integration](https://github.com/trycatchh/lower?tab=readme-ov-file#integration)
+- [How to Use?](https://github.com/trycatchh/lower?tab=readme-ov-file#how-to-use)
 - [How can I contribute?](https://github.com/trycatchh/lower?tab=readme-ov-file#how-can-i-contribute)
 - [License (MIT)](https://github.com/trycatchh/lower?tab=readme-ov-file#license)
 
 ## What is Lower?
 Lower Framework is a lightweight, modular web framework written in C that speeds up development with its flexibility and high performance. It allows you to customize and extend modules easily to fit your needs. With [LowPM](https://trycatch.network), integrating external libraries and managing modules becomes simple and efficient, making your projects faster and more maintainable.
 
-## Getting Started & Integration
+## Getting Started
 ### Use LW Structure
-> [Copy the project](https://github.com/trycatchh/lower.git) directly and stand it up. All the structures that should be in the project will come, just commit your project on it.
+[Copy the project](https://github.com/trycatchh/lower.git) directly and stand it up. All the structures that should be in the project will come, just commit your project on it.
 
 ### Include Your Project
-> Include basic modules for run
+Include basic modules for run
 ```shell
 git clone https://github.com/trycatchh/lower.git
 ```
-> Add the library to your code file
+Add the library to your code file
 ```c
 #include "lower/run.h" // Runtime module
 ```
 To add libraries, please refer to the [documentation of the LowPM](https://trycatch.network/) repository.
 
-## For Example
+## Integration
 ##### Create a handler
 ```c
 void index_handler(http_request_t *req, http_response_t *res) {
@@ -46,12 +47,27 @@ void index_handler(http_request_t *req, http_response_t *res) {
 lw_context_t lw_ctx = {0};
 int main(int argc, char *argv[]) {
     parameter_controller(argc, argv);
+    if (LW_DEV_MODE) { // If u use dev mode. 
+        printf("[DEV] Starting live reload server on port %d\n", LW_PORT + 1000);
+        start_live_reload_server(LW_PORT + 1000, "./public");
+    }
     use_static_files();
     lw_route(GET, "/", index_handler);
     
     return lw_run(parameter_controller(argc, argv));
 }
 ```
+
+## How to Use?
+If you have included LowerWF in your project later, compile it with your own build technique. But if you are using the project template, follow this path:
+```shell
+make clean && make # build project
+```
+You can then run the project. You can send commands to the binary file of the software as follows:
+```shell
+sudo ./build/lwserver -p 8282 -d
+```
+> With the -h argument, you can use the appropriate command from the command documentation and find out what the commands are.
 
 ## How can I contribute?
 We welcome your contributions. If there is a software problem, do not hesitate to tell us and we will do our best.
