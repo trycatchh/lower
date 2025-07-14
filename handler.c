@@ -73,3 +73,10 @@ void lw_set_body(http_response_t *response, const char *body) {
     response->body = malloc(response->body_length + 1);
     strcpy(response->body, body);
 }
+
+void lw_set_body_bin(http_response_t *response, const char *body, size_t length) {
+    if (response->body) free(response->body);
+    response->body_length = length;
+    response->body = malloc(length);
+    memcpy(response->body, body, length);
+}

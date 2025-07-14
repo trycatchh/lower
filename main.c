@@ -14,9 +14,9 @@ int main(int argc, char *argv[]) {
     printf("[LW] Starting Lower Web Framework...\n");
     printf("[LW] HTML Handler System\n");
     
+    use_static_files();
+
     lw_route(GET, "/", index_handler);
-    lw_route(GET, "/css/style.css", static_file_handler);
-    lw_route(GET, "/js/app.js", static_file_handler);
 
     printf("[LW] Routes registered successfully!\n");
     printf("[LW] HTML files will be loaded from ./public/html/\n");

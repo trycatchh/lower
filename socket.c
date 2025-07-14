@@ -1,6 +1,8 @@
 #include "run.h"
 
-int lw_run(int port) {
+void use_static_files();
+
+int lw_run(int port) {    
     struct sockaddr_in address;
     int addr_len = sizeof(address);
     char buffer[BUFFER_SIZE] = {0};

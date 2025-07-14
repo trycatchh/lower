@@ -24,10 +24,18 @@ const char *method_to_string(http_method_t method) {
 
 route_t *find_route(http_method_t method, const char *path) {
     for (int i = 0; i < lw_ctx.route_count; i++) {
-        if (lw_ctx.routes[i].method == method && 
-            strcmp(lw_ctx.routes[i].path, path) == 0) {
-            return &lw_ctx.routes[i];
+        route_t *route = &lw_ctx.routes[i];
+        if (route->method == method) {
+            size_t route_len = strlen(route->path);
+
+            if (strncmp(route->path, path, route_len) == 0) {
+                return route;
+            }
         }
+        // if (lw_ctx.routes[i].method == method && 
+        //     strcmp(lw_ctx.routes[i].path, path) == 0) {
+        //     return &lw_ctx.routes[i];
+        // }
     }
     return NULL;
 }

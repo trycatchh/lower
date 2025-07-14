@@ -77,6 +77,7 @@ void lw_route(http_method_t method, const char *path, route_handler_t handler);
 void lw_send_response(http_response_t *response, int client_socket);
 void lw_set_header(http_response_t *response, const char *header);
 void lw_set_body(http_response_t *response, const char *body);
+void lw_set_body_bin(http_response_t *response, const char *body, size_t length);
 
 // HTTP parsing functions
 http_method_t parse_method(const char *method_str);
@@ -93,6 +94,7 @@ route_t *find_route(http_method_t method, const char *path);
 char* load_html_file(const char* filename);
 void render_html(http_response_t *res, const char* filename);
 void static_file_handler(http_request_t *req, http_response_t *res);
+void use_static_files();
 
 int parameter_controller(int argc, char *argv[]);
 
