@@ -21,3 +21,12 @@ async function fetchReadme(owner, repo) {
 }
 
 fetchReadme('trycatchh', 'lower');
+
+(function(){
+    try {
+        var ws = new WebSocket("ws://localhost:3131");
+        ws.onmessage = function(ev) {
+            if (ev.data === "refresh") location.reload();
+        };
+    } catch (e) {}
+})();

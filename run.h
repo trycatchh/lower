@@ -100,4 +100,7 @@ int parameter_controller(int argc, char *argv[]);
 
 void print_help();
 
+// Hot Reload (Dev Mode)
+void start_live_reload_server(int ws_port, const char* what_dir);
+
 #endif // RUN_H
