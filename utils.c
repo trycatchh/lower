@@ -11,6 +11,11 @@ int LW_PORT;
 int LW_VERBOSE;
 int LW_DEV_MODE = 0; // Dev mode flag
 
+chunked_state_t chunked_state = {
+    .chunked_count = 0,
+    .chunked_mutex = PTHREAD_MUTEX_INITIALIZER
+};
+
 const char *method_to_string(http_method_t method)
 {
     switch (method)
@@ -140,8 +145,7 @@ int parameter_controller(int argc, char *argv[])
             break;
         case 'd':
             LW_DEV_MODE = 1;
-            // printf("[LW] Enable Development Mode (Hot Refresh)\n");
-            // start_live_reload_server(LW_PORT + 1000, "./public");
+            printf("[LW] Development Mode enabled (Hot Refresh)\n");
             break;
         default:
             fprintf(stderr, "[ERR] Usage: %s [-p port] [-v] [-d]\n", argv[0]);

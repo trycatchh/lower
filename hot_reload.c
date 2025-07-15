@@ -1,13 +1,10 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include "run.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
 #include <sys/inotify.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
@@ -15,388 +12,235 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <stdint.h>
 
-// Max 64 Client
-#define MAX_WS_CLIENT 64
+#define MAX_WATCH_DESCRIPTORS 1024
 #define EVENT_SIZE (sizeof(struct inotify_event))
-#define BUF_LEN (1024 * (EVENT_SIZE + 16))
+#define INOTIFY_BUF_LEN (1024 * (EVENT_SIZE + 16))
 
-static int ws_clients[MAX_WS_CLIENT]; // Client list
-static int ws_client_count = 0;
-static pthread_mutex_t ws_mutex = PTHREAD_MUTEX_INITIALIZER;
-static int ws_server_running = 0;
+typedef struct {
+    int wd;
+    char path[512];
+} watch_descriptor_t;
 
-void notify_clients_reload() {
-    pthread_mutex_lock(&ws_mutex);
-    printf("[DEV] Notifying %d clients to reload...\n", ws_client_count);
-    for (int i = 0; i < ws_client_count; ) {
-        int fd = ws_clients[i];
-        
-        // Check if the socket is still open
-        int error = 0;
-        socklen_t len = sizeof(error);
-        getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len);
-        if (error != 0) {
-            printf("[DEV] Client %d already disconnected (error: %s)\n", i, strerror(error));
-            close(fd);
-            ws_clients[i] = ws_clients[--ws_client_count];
-            continue;
-        }
+static struct {
+    watch_descriptor_t watch_descriptors[MAX_WATCH_DESCRIPTORS];
+    int watch_count;
+    pthread_mutex_t watch_mutex;
+    int inotify_fd;
+    volatile int shutdown_requested;
+} hot_reload_state = {
+    .watch_count = 0,
+    .watch_mutex = PTHREAD_MUTEX_INITIALIZER,
+    .inotify_fd = -1,
+    .shutdown_requested = 0
+};
 
-        // Correct WebSocket frame: FIN=1, opcode=1 (text), and payload length=6, no masking
-        char msg[] = {
-            0x81, // FIN=1, opcode=1 (text frame)
-            0x06, // Mask=0 and payload length=6
-            'r', 'e', 'l', 'o', 'a', 'd'
-        };
-        
-        ssize_t sent = send(fd, msg, sizeof(msg), MSG_NOSIGNAL);
-        if (sent < 0) {
-            printf("[DEV] Send error to client %d: %s\n", i, strerror(errno));
-            close(fd);
-            ws_clients[i] = ws_clients[--ws_client_count];
-        } else {
-            printf("[DEV] Reload message sent to client %d (%zd bytes)\n", i, sent);
-            i++;
-        }
-    }
-    pthread_mutex_unlock(&ws_mutex);
+static void* file_watcher_thread(void* arg);
+static void add_watches_recursive(const char* path);
+static int is_temp_file(const char* filename);
+static void shutdown_hot_reload(void);
+static void signal_handler(int signum);
+
+static void notify_clients_reload(void)
+{
+    // Creating an empty file that the HTTP handler gonna look.
+    int fd = open("/tmp/lower_reload_flag", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd >= 0) close(fd);
 }
 
-// Recursive function to add watches to all subdirectories
-void add_watches_recursive(int inotify_fd, const char* path) {
-    DIR *dir;
-    struct dirent *entry;
+static void add_watches_recursive(const char* path)
+{
+    DIR* dir;
+    struct dirent* entry;
     struct stat statbuf;
     char full_path[512];
-    
-    printf("[DEV] Adding watch for directory: %s\n", path);
-    
-    int wd = inotify_add_watch(inotify_fd, path, IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_TO | IN_MOVED_FROM);
+
+    printf("[DEV] Adding watch for: %s\n", path);
+
+    int wd = inotify_add_watch(hot_reload_state.inotify_fd, path,
+                               IN_MODIFY | IN_CREATE | IN_DELETE |
+                               IN_MOVED_TO | IN_MOVED_FROM);
     if (wd < 0) {
-        printf("[DEV] Failed to add watch for %s: %s\n", path, strerror(errno));
+        printf("[ERR] Failed to add watch for %s: %s\n", path, strerror(errno));
         return;
-    } else {
-        printf("[DEV] Successfully added watch for %s (wd: %d)\n", path, wd);
     }
-    
+
+    pthread_mutex_lock(&hot_reload_state.watch_mutex);
+    if (hot_reload_state.watch_count < MAX_WATCH_DESCRIPTORS) {
+        hot_reload_state.watch_descriptors[hot_reload_state.watch_count].wd = wd;
+        strncpy(hot_reload_state.watch_descriptors[hot_reload_state.watch_count].path,
+                path, sizeof(hot_reload_state.watch_descriptors[0].path) - 1);
+        hot_reload_state.watch_count++;
+    }
+    pthread_mutex_unlock(&hot_reload_state.watch_mutex);
+
     dir = opendir(path);
     if (!dir) {
-        printf("[DEV] Failed to open directory %s: %s\n", path, strerror(errno));
+        printf("[ERR] Failed to open directory %s: %s\n", path, strerror(errno));
         return;
     }
-    
+
     while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+        if (strcmp(entry->d_name, ".") == 0 ||
+            strcmp(entry->d_name, "..") == 0)
             continue;
-        }
-        
+
+        if (entry->d_name[0] == '.' ||
+            strcmp(entry->d_name, "node_modules") == 0 ||
+            strcmp(entry->d_name, ".git") == 0   ||
+            strcmp(entry->d_name, "build") == 0  ||
+            strcmp(entry->d_name, "dist") == 0)
+            continue;
+
         snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
-        
-        if (stat(full_path, &statbuf) == 0 && S_ISDIR(statbuf.st_mode)) {
-            add_watches_recursive(inotify_fd, full_path);
-        }
+        if (stat(full_path, &statbuf) == 0 && S_ISDIR(statbuf.st_mode))
+            add_watches_recursive(full_path);
     }
-    
     closedir(dir);
 }
 
-void* watch_thread(void* arg) {
-    const char* watch_dir = (const char*) arg;
-    printf("[DEV] Watch thread started for directory: %s\n", watch_dir);
-    
-    int fd = inotify_init();
-    if (fd < 0) {
-        printf("[DEV] inotify_init failed: %s\n", strerror(errno));
-        return NULL;
-    }
-    
-    printf("[DEV] inotify_init successful, fd: %d\n", fd);
-    
-    // Add recursive watches
-    add_watches_recursive(fd, watch_dir);
-    
-    // File change listener
-    char buffer[BUF_LEN];
-    printf("[DEV] Starting file monitoring loop...\n");
-    
-    while (1) {
-        int length = read(fd, buffer, BUF_LEN);
-        
-        if (length < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            printf("[DEV] read from inotify fd failed: %s\n", strerror(errno));
-            break;
-        }
-        
-        if (length == 0) {
-            printf("[DEV] inotify read returned 0, continuing...\n");
-            continue;
-        }
-        
-        printf("[DEV] inotify read %d bytes\n", length);
-        
-        // Parse inotify events
-        int i = 0;
-        int events_processed = 0;
-        while (i < length) {
-            struct inotify_event *event = (struct inotify_event *) &buffer[i];
-            
-            printf("[DEV] Event: wd=%d mask=%u cookie=%u len=%u", 
-                   event->wd, event->mask, event->cookie, event->len);
-            
-            if (event->len > 0) {
-                printf(" name=%s", event->name);
-                
-                // Filter out temporary files and hidden files
-                if (event->name[0] != '.' && 
-                    !strstr(event->name, "~") && 
-                    !strstr(event->name, ".swp") &&
-                    !strstr(event->name, ".tmp")) {
-                    
-                    // Only watch specific extensions
-                    const char *ext = strrchr(event->name, '.');
-                    if (ext && (strcmp(ext, ".html") == 0 || 
-                                strcmp(ext, ".css") == 0 || 
-                                strcmp(ext, ".js") == 0)) {
-                        printf(" -> TRIGGERING RELOAD");
-                        notify_clients_reload();
-                        events_processed++;
-                    }
-                }
-            }
-            printf("\n");
-            
-            i += EVENT_SIZE + event->len;
-        }
-        
-        if (events_processed > 0) {
-            // Small delay to prevent multiple rapid notifications
-            printf("[DEV] Processed %d events, sleeping 500ms...\n", events_processed);
-            struct timespec ts;
-            ts.tv_sec = 0;
-            ts.tv_nsec = 500 * 1000 * 1000; // 500ms
-            nanosleep(&ts, NULL);
-        }
-    }
-    
-    printf("[DEV] Watch thread ending\n");
-    close(fd);
-    return NULL;
-}
+static int is_temp_file(const char* filename)
+{
+    if (!filename || strlen(filename) == 0) return 1;
 
-int websocket_handshake(int client_fd) {
-    char buf[4096];
-    int len = recv(client_fd, buf, sizeof(buf)-1, 0);
-    if (len <= 0) {
-        printf("[DEV] Failed to receive handshake data: %s\n", strerror(errno));
-        return -1;
-    }
-    buf[len] = '\0';
+    if (filename[0] == '.') return 1;
+    if (strstr(filename, "~")    != NULL) return 1;
+    if (strstr(filename, ".swp") != NULL) return 1;
+    if (strstr(filename, ".tmp") != NULL) return 1;
+    if (strstr(filename, ".bak") != NULL) return 1;
+    if (strstr(filename, "#")    != NULL) return 1;
 
-    printf("[DEV] WebSocket handshake request (%d bytes):\n%s\n", len, buf);
-
-    // Check if it's a WebSocket request
-    if (!strstr(buf, "Upgrade: websocket") && !strstr(buf, "Upgrade: WebSocket")) {
-        printf("[DEV] Not a WebSocket upgrade request\n");
-        return -1;
-    }
-
-    char* key = strstr(buf, "Sec-WebSocket-Key: ");
-    if (!key) {
-        printf("[DEV] No Sec-WebSocket-Key found in request\n");
-        return -1;
-    }
-    key += strlen("Sec-WebSocket-Key: ");
-
-    char* end = strstr(key, "\r\n");
-    if (!end) {
-        printf("[DEV] Malformed WebSocket key\n");
-        return -1;
-    }
-    
-    char ws_key[128] = {0};
-    strncpy(ws_key, key, end - key);
-    printf("[DEV] Extracted WebSocket key: %s\n", ws_key);
-    
-    // Simple handshake response (development only)
-    const char* handshake = 
-        "HTTP/1.1 101 Switching Protocols\r\n"
-        "Upgrade: websocket\r\n"
-        "Connection: Upgrade\r\n"
-        "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n"
-        "\r\n";
-    
-    int sent = send(client_fd, handshake, strlen(handshake), 0);
-    if (sent < 0) {
-        printf("[DEV] Failed to send handshake response: %s\n", strerror(errno));
-        return -1;
-    }
-    
-    printf("[DEV] WebSocket handshake completed successfully (%d bytes sent)\n", sent);
     return 0;
 }
 
-// WebSocket server thread
-void* ws_server_thread(void* arg) {
-    int ws_port = *(int*)arg;
-    printf("[DEV] WebSocket server thread started on port %d\n", ws_port);
-    
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        printf("[DEV] Socket creation failed: %s\n", strerror(errno));
-        return NULL;
-    }
-    
-    printf("[DEV] Socket created successfully, fd: %d\n", server_fd);
-    
-    int opt = 1;
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        printf("[DEV] setsockopt SO_REUSEADDR failed: %s\n", strerror(errno));
-        close(server_fd);
-        return NULL;
-    }
-    
-    // Ignore SIGPIPE to prevent crashes when clients disconnect
-    signal(SIGPIPE, SIG_IGN);
-    
-    struct sockaddr_in addr = {0};
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(ws_port);
+static void* file_watcher_thread(void* arg)
+{
+    const char* watch_dir = (const char*)arg;
+    char buffer[INOTIFY_BUF_LEN];
 
-    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        printf("[DEV] Bind failed on port %d: %s\n", ws_port, strerror(errno));
-        close(server_fd);
-        return NULL;
-    }
-    
-    printf("[DEV] Socket bound successfully to port %d\n", ws_port);
-    
-    if (listen(server_fd, 8) < 0) {
-        printf("[DEV] Listen failed: %s\n", strerror(errno));
-        close(server_fd);
+    printf("[DEV] Starting file watcher for: %s\n", watch_dir);
+
+    hot_reload_state.inotify_fd = inotify_init();
+    if (hot_reload_state.inotify_fd < 0) {
+        printf("[DEV] inotify_init failed: %s\n", strerror(errno));
         return NULL;
     }
 
-    printf("[DEV] Live reload WebSocket server started at ws://localhost:%d\n", ws_port);
-    printf("[DEV] Server is now accepting connections...\n");
-    ws_server_running = 1;
+    if (access(watch_dir, F_OK) != 0) {
+        printf("[ERR] Watch directory %s does not exist\n", watch_dir);
+        return NULL;
+    }
 
-    while (ws_server_running) {
-        struct sockaddr_in client_addr;
-        socklen_t client_len = sizeof(client_addr);
-        int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
-        
-        if (client_fd < 0) {
-            if (errno == EINTR) {
-                continue;
-            }
-            printf("[DEV] Accept failed: %s\n", strerror(errno));
-            continue;
+    add_watches_recursive(watch_dir);
+    printf("[DEV] File watcher started with %d watches\n",
+           hot_reload_state.watch_count);
+
+    while (!hot_reload_state.shutdown_requested) {
+        int length = read(hot_reload_state.inotify_fd, buffer, INOTIFY_BUF_LEN);
+        if (length < 0) {
+            if (errno == EINTR) continue;
+            printf("[ERR] inotify read failed: %s\n", strerror(errno));
+            break;
         }
-        
-        printf("[DEV] New connection from %s:%d (fd: %d)\n", 
-               inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port), client_fd);
-        
-        if (websocket_handshake(client_fd) == 0) {
-            pthread_mutex_lock(&ws_mutex);
-            if (ws_client_count < MAX_WS_CLIENT) {
-                ws_clients[ws_client_count++] = client_fd;
-                printf("[DEV] WebSocket client connected successfully (%d total)\n", ws_client_count); 
-            } else {
-                printf("[DEV] Max clients (%d) reached, closing connection\n", MAX_WS_CLIENT);
-                close(client_fd);
+        if (length == 0) continue;
+
+        int i = 0;
+        int reload_triggered = 0;
+
+        while (i < length) {
+            struct inotify_event* event = (struct inotify_event*)&buffer[i];
+
+            if (event->len > 0) {
+                printf("[DEV] File event: %s (mask: 0x%x)\n", event->name, event->mask);
+
+                if (!is_temp_file(event->name)) {
+                    printf("[DEV] Triggering reload for: %s\n", event->name);
+                    reload_triggered = 1;
+                }
             }
-            pthread_mutex_unlock(&ws_mutex);
-        } else {
-            printf("[DEV] WebSocket handshake failed, closing connection\n");
-            close(client_fd);
+
+            if ((event->mask & IN_CREATE) && (event->mask & IN_ISDIR)) {
+                char new_dir[512];
+                pthread_mutex_lock(&hot_reload_state.watch_mutex);
+                for (int j = 0; j < hot_reload_state.watch_count; j++) {
+                    if (hot_reload_state.watch_descriptors[j].wd == event->wd) {
+                        snprintf(new_dir, sizeof(new_dir), "%s/%s",
+                                 hot_reload_state.watch_descriptors[j].path,
+                                 event->name);
+                        break;
+                    }
+                }
+                pthread_mutex_unlock(&hot_reload_state.watch_mutex);
+
+                if (strlen(new_dir) > 0 && !is_temp_file(event->name))
+                    add_watches_recursive(new_dir);
+            }
+            i += EVENT_SIZE + event->len;
+        }
+
+        if (reload_triggered) {
+            notify_clients_reload();
+            struct timespec delay = {0, 500000000}; // 500 ms 
+            nanosleep(&delay, NULL);
         }
     }
-    
-    printf("[DEV] WebSocket server shutting down\n");
-    close(server_fd);
+
+    printf("[HOT_RELOAD] File watcher shutting down\n");
+    if (hot_reload_state.inotify_fd >= 0) {
+        close(hot_reload_state.inotify_fd);
+        hot_reload_state.inotify_fd = -1;
+    }
     return NULL;
 }
 
-void start_live_reload_server(int ws_port, const char* watch_dir) {
-    pthread_t t1, t2;
-    static int port_copy;
-    port_copy = ws_port;
-    
-    printf("[DEV] Starting live reload system...\n");
-    printf("[DEV] WebSocket port: %d\n", ws_port);
+static void signal_handler(int signum)
+{
+    (void)signum;
+    printf("[HOT_RELOAD] Shutdown signal received\n");
+    hot_reload_state.shutdown_requested = 1;
+    shutdown_hot_reload();
+}
+
+static void shutdown_hot_reload(void)
+{
+    printf("[HOT_RELOAD] Shutting down hot reload system...\n");
+    hot_reload_state.shutdown_requested = 1;
+
+    if (hot_reload_state.inotify_fd >= 0) {
+        close(hot_reload_state.inotify_fd);
+        hot_reload_state.inotify_fd = -1;
+    }
+
+    unlink("/tmp/lower_reload_flag");
+    printf("[DEV] Hot reload system shut down\n");
+}
+
+void start_live_reload_server(int unused, const char* watch_dir)
+{
+    (void)unused;   // port parameter is no longer used...
+
+    pthread_t watcher_thread;
+    static char dir_copy[512];
+
+    printf("[DEV] Initializing live reload system...\n");
     printf("[DEV] Watch directory: %s\n", watch_dir);
-    
-    // Check if port is available
-    int test_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (test_fd >= 0) {
-        struct sockaddr_in test_addr = {0};
-        test_addr.sin_family = AF_INET;
-        test_addr.sin_addr.s_addr = INADDR_ANY;
-        test_addr.sin_port = htons(ws_port);
-        
-        if (bind(test_fd, (struct sockaddr*)&test_addr, sizeof(test_addr))) {
-            printf("[DEV] Port %d is in use, trying %d\n", ws_port, ws_port + 1);
-            close(test_fd);
-            ws_port += 1; // Try next port
-            
-            // Create a new socket for the next port
-            test_fd = socket(AF_INET, SOCK_STREAM, 0);
-            if (test_fd < 0) {
-                printf("[DEV] Failed to create test socket for port %d: %s\n", ws_port, strerror(errno));
-                return;
-            }
-            
-            test_addr.sin_port = htons(ws_port);
-            if (bind(test_fd, (struct sockaddr*)&test_addr, sizeof(test_addr))) {
-                printf("[DEV] Port %d also in use, giving up\n", ws_port);
-                close(test_fd);
-                return;
-            }
-        }
-        close(test_fd);
-    } else {
-        printf("[DEV] Failed to create test socket: %s\n", strerror(errno));
+
+    strncpy(dir_copy, watch_dir, sizeof(dir_copy) - 1);
+    dir_copy[sizeof(dir_copy) - 1] = '\0';
+
+    // remove stale flag
+    unlink("/tmp/lower_reload_flag");
+
+    signal(SIGINT,  signal_handler);
+    signal(SIGTERM, signal_handler);
+    atexit(shutdown_hot_reload);
+
+    if (pthread_create(&watcher_thread, NULL, file_watcher_thread, dir_copy) != 0) {
+        perror("[ERR] Could not create file watcher thread");
         return;
     }
-    
-    // Update port copy
-    port_copy = ws_port;
-    printf("[DEV] Using WebSocket port: %d\n", ws_port);
-    
-    // Check if directory exists
-    struct stat st;
-    if (stat(watch_dir, &st) != 0) {
-        printf("[DEV] Warning: Watch directory '%s' does not exist: %s\n", watch_dir, strerror(errno));
-    } else if (!S_ISDIR(st.st_mode)) {
-        printf("[DEV] Warning: '%s' is not a directory\n", watch_dir);
-    } else {
-        printf("[DEV] Watch directory '%s' exists and is accessible\n", watch_dir);
-    }
-    
-    if (pthread_create(&t1, NULL, ws_server_thread, &port_copy) != 0) {
-        printf("[DEV] Failed to create WebSocket server thread: %s\n", strerror(errno));
-        return;
-    }
-    
-    if (pthread_create(&t2, NULL, watch_thread, (void*)watch_dir) != 0) {
-        printf("[DEV] Failed to create file watcher thread: %s\n", strerror(errno));
-        return;
-    }
-    
-    pthread_detach(t1);
-    pthread_detach(t2);
-    
-    printf("[DEV] Live reload system started successfully\n");
-    printf("[DEV] You can test the connection by opening: ws://localhost:%d\n", ws_port);
-    
-    // Give threads time to start
-    struct timespec ts;
-    ts.tv_sec = 1;
-    ts.tv_nsec = 0;
-    nanosleep(&ts, NULL);
+    pthread_detach(watcher_thread);
+
+    printf("[DEV] Live reload system started\n");
 }

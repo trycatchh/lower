@@ -81,6 +81,7 @@ int lw_run(int port) {
         
         http_response_t response = {0};
         init_response(&response);
+        response.chunked_fd = -1; // -1 for the default.
 
         if (route) {
             // Call route handler
@@ -93,8 +94,12 @@ int lw_run(int port) {
         }
 
         // Send response
-        lw_send_response(&response, client_socket);
-
+        if (response.chunked_fd >= 0) {
+            // It's already handled in 'render_html', so.. nothing to do here i guess ?
+        } else {
+            lw_send_response(&response, client_socket);
+        }
+        
         // Cleanup
         free_request(&request);
         free_response(&response);
@@ -104,3 +109,5 @@ int lw_run(int port) {
     close(lw_ctx.server_fd);
     return 0;
 }
+
+

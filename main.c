@@ -11,13 +11,12 @@ int main(int argc, char *argv[]) {
     
     parameter_controller(argc, argv);
 
+    if (LW_DEV_MODE) {
+        start_live_reload_server(8181, "./public");
+    }
+
     printf("[LW] Starting Lower Web Framework...\n");
     printf("[LW] HTML Handler System\n");
-
-    if (LW_DEV_MODE) {
-        printf("[DEV] Starting live reload server on port %d\n", LW_PORT + 1000);
-        start_live_reload_server(LW_PORT + 1000, "./public");
-    }
     
     use_static_files();
 

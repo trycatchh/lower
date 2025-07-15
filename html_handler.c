@@ -1,4 +1,8 @@
+#define _GNU_SOURCE
 #include "run.h"
+#include <pthread.h>
+#include <string.h>
+#include <stdio.h>
 
 char* load_html_file(const char* filename) {
     char filepath[512];
@@ -15,12 +19,68 @@ char* load_html_file(const char* filename) {
     fseek(file, 0, SEEK_SET);
 
     char *content = malloc(file_size + 1);
-    fread(content, 1, file_size, file);
+    fread(content, 1, file_size, file),
     content[file_size] = '\0';
 
     fclose(file);
     printf("[LW] HTML file load: %s\n", filepath);
     return content;
+}
+
+static void chunked_write(int fd, const char *data, size_t len)
+{
+    char header[32];
+    int hdr_len = snprintf(header, sizeof(header), "%zx\r\n", len);
+    send(fd, header, hdr_len, MSG_NOSIGNAL);
+    send(fd, data, len, MSG_NOSIGNAL);
+    send(fd, "\r\n", 2, MSG_NOSIGNAL);
+}
+
+void render_html(http_response_t *res, const char *filename)
+{
+    if (!LW_DEV_MODE) {
+        /* old behaviour */
+        char *content = load_html_file(filename);
+        if (!content) {
+            res->status_code = 404;
+            lw_set_header(res, "Content-Type: text/html; charset=utf-8");
+            lw_set_body(res, "<h1>404 Not Found</h1>");
+            return;
+        }
+        lw_set_header(res, "Content-Type: text/html; charset=utf-8");
+        lw_set_body(res, content);
+        free(content);
+        return;
+    }
+
+    /* ---------- chunked streaming path ---------- */
+    res->status_code = 200;
+    lw_set_header(res, "Content-Type: text/html; charset=utf-8");
+    lw_set_header(res, "Transfer-Encoding: chunked");
+    lw_set_header(res, "Cache-Control: no-cache");
+    lw_set_header(res, "Connection: close");
+
+    /* send headers first */
+    char header_buf[2048];
+    int off = snprintf(header_buf, sizeof(header_buf),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/html; charset=utf-8\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Cache-Control: no-cache\r\n"
+        "Connection: close\r\n\r\n");
+    send(res->chunked_fd, header_buf, off, MSG_NOSIGNAL);
+
+    pthread_mutex_lock(&chunked_state.chunked_mutex);
+    if (chunked_state.chunked_count < 64) {
+        chunked_state.chunked_fds[chunked_state.chunked_count++] = res->chunked_fd;
+        pthread_mutex_unlock(&chunked_state.chunked_mutex);
+    }
+
+    /* render & send initial chunk */
+    char *content = load_html_file(filename);
+    if (!content) content = strdup("<h1>404 Not Found</h1>");
+    chunked_write(res->chunked_fd, content, strlen(content));
+    free(content);
 }
 
 void static_file_handler(http_request_t *req, http_response_t *res) {
@@ -106,98 +166,4 @@ void use_static_files() {
     lw_route(GET, "/uploads/", static_file_handler);
     lw_route(GET, "/media/", static_file_handler);
     lw_route(GET, "/favicon.ico", static_file_handler);
-}
-
-extern int LW_DEV_MODE;
-extern int LW_PORT;
-
-void render_html(http_response_t *res, const char* filename) {
-    char* content = load_html_file(filename);
-    if (content == NULL) {
-        res->status_code = 404;
-        lw_set_header(res, "Content-Type: text/html; charset=utf-8");
-        lw_set_body(res, "<!DOCTYPE html><html><head><title>404</title></head><body>"
-                         "<h1>404 - Page Not Found</h1>"
-                         "<p>This page not available.</p>"
-                        "</body></html>");
-        return;            
-    }
-
-    if (LW_DEV_MODE) {
-        char ws_script[2048]; // Increased buffer size
-        
-        snprintf(ws_script, sizeof(ws_script),
-            "<script>"
-            "(function() {"
-            "    if (window.location.hostname === 'localhost' || "
-            "        window.location.hostname === '127.0.0.1') {"
-            "        const wsPort = %d;"
-            "        const isSecure = window.location.protocol === 'https:';"
-            "        const wsProtocol = isSecure ? 'wss://' : 'ws://';"
-            "        const wsUrl = wsProtocol + '127.0.0.1:' + wsPort;"
-            "        console.log('[DEV] Connecting to:', wsUrl);"
-            "        let reconnectAttempts = 0;"
-            "        let ws;"
-            ""
-            "        function connect() {"
-            "            try {"
-            "                ws = new WebSocket(wsUrl);"
-            "                ws.onopen = function() {"
-            "                    console.log('[DEV] WebSocket connected');"
-            "                    reconnectAttempts = 0;"
-            "                };"
-            "                ws.onmessage = function(event) {"
-            "                    if (event.data === 'reload') {"
-            "                        console.log('[DEV] Reloading page...');"
-            "                        window.location.reload(true);"
-            "                    }"
-            "                };"
-            "                ws.onclose = function() {"
-            "                    const delay = Math.min(3000, 1000 * Math.pow(2, reconnectAttempts));"
-            "                    console.log('[DEV] WebSocket closed. Reconnecting in ' + delay + 'ms...');"
-            "                    setTimeout(connect, delay);"
-            "                    reconnectAttempts++;"
-            "                };"
-            "                ws.onerror = function(error) {"
-            "                    console.error('[DEV] WebSocket error:', error);"
-            "                    if (ws) ws.close();"
-            "                };"
-            "            } catch (e) {"
-            "                console.error('[DEV] WebSocket exception:', e);"
-            "            }"
-            "        }"
-            "        connect();"
-            "    }"
-            "})();"
-            "</script>", LW_PORT + 1000);
-
-        char* body_pos = strstr(content, "</body>");
-        if (body_pos) {
-            size_t prefix_len = body_pos - content;
-            size_t suffix_len = strlen(body_pos);
-            size_t script_len = strlen(ws_script);
-            size_t total_len = prefix_len + script_len + suffix_len;
-            
-            char* new_content = malloc(total_len + 1);
-            if (new_content == NULL) {
-                printf("[ERR] Memory allocation failed for script injection\n");
-                lw_set_header(res, "Content-Type: text/html; charset=utf-8");
-                lw_set_body(res, content);
-                free(content);
-                return;
-            }
-            
-            memcpy(new_content, content, prefix_len);
-            memcpy(new_content + prefix_len, ws_script, script_len);
-            memcpy(new_content + prefix_len + script_len, body_pos, suffix_len);
-            new_content[total_len] = '\0';
-            
-            free(content);
-            content = new_content;
-        }
-    }
-
-    lw_set_header(res, "Content-Type: text/html; charset=utf-8");
-    lw_set_body(res, content);
-    free(content);
 }
