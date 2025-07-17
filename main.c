@@ -1,4 +1,7 @@
 #include "run.h"
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
 
 lw_context_t lw_ctx = {0};
 
@@ -9,6 +12,9 @@ void index_handler(http_request_t *req, http_response_t *res) {
 
 int main(int argc, char *argv[]) {
     
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+
     parameter_controller(argc, argv);
 
     if (LW_DEV_MODE) {
