@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <openssl/ssl.h>
 
 #define MAX_HEADERS       50
 #define MAX_ROUTES        100
@@ -18,6 +19,14 @@
 extern int LW_PORT;
 extern int LW_VERBOSE;
 extern int LW_DEV_MODE;
+extern int LW_SSL_SECLVL;
+extern int LW_CERT;
+extern int LW_KEY;
+extern int LW_SSL_ENABLED; 
+extern const char* LW_CERT_FILE;
+extern const char* LW_KEY_FILE;
+extern SSL *LW_SSL;
+extern SSL_CTX *ssl_ctx;
 
 // Enums & Structs
 typedef enum {
@@ -74,7 +83,7 @@ extern lw_context_t lw_ctx;
 // Functions
 int  lw_run(int port);
 void lw_route(http_method_t method, const char *path, route_handler_t handler);
-void lw_send_response(http_response_t *response, int client_socket);
+void lw_send_response(http_response_t *response, int client_socket, SSL *client_ssl);
 void lw_set_header(http_response_t *response, const char *header);
 void lw_set_body(http_response_t *response, const char *body);
 void lw_set_body_bin(http_response_t *response, const char *body, size_t length);
@@ -97,5 +106,11 @@ int parameter_controller(int argc, char *argv[]);
 void print_help(void);
 
 void start_live_reload_server(int ws_port_unused, const char *watch_dir);
+
+// SSL
+void init_openssl();
+void cleanup_openssl();
+SSL_CTX* create_ssl_ctx();
+void configure_ssl_ctx(SSL_CTX* ctx, const char* cert_file, const char* key_file);
 
 #endif

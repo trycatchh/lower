@@ -17,7 +17,7 @@ void lw_route(http_method_t method, const char *path, route_handler_t handler) {
     LW_VERBOSE ? printf("[LW] Route registered: %s %s\n", method_to_string(method), path) : 0;
 }
 
-void lw_send_response(http_response_t *response, int client_socket) {
+void lw_send_response(http_response_t *response, int client_socket, SSL *client_ssl) {
     char response_buffer[BUFFER_SIZE * 2];
     int offset = 0;
     
@@ -49,8 +49,12 @@ void lw_send_response(http_response_t *response, int client_socket) {
         offset += response->body_length;
     }
     
-    // Send response
-    write(client_socket, response_buffer, offset);
+    // Send response - use SSL if available, otherwise regular socket
+    if (LW_SSL_ENABLED == 1 && client_ssl) {
+        SSL_write(client_ssl, response_buffer, offset);
+    } else {
+        write(client_socket, response_buffer, offset);
+    }
 }
 
 void lw_set_header(http_response_t *response, const char *header) {
@@ -80,3 +84,4 @@ void lw_set_body_bin(http_response_t *response, const char *body, size_t length)
     response->body = malloc(length);
     memcpy(response->body, body, length);
 }
+
