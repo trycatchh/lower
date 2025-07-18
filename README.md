@@ -44,19 +44,15 @@ void index_handler(http_request_t *req, http_response_t *res) {
 ```
 ##### Register the handler and run the server
 ```c
-lw_context_t lw_ctx = {0};
 int main(int argc, char *argv[]) {
     parameter_controller(argc, argv);
-    if (LW_DEV_MODE) { // If u use dev mode. 
-        printf("[DEV] Starting live reload server on port %d\n", LW_PORT + 1000);
-        start_live_reload_server(LW_PORT + 1000, "./public");
-    }
-    use_static_files();
+    use_static_files(); // if u want: (public: html/, css/, js/...)
     lw_route(GET, "/", index_handler);
     
     return lw_run(parameter_controller(argc, argv));
 }
 ```
+[Static Files Supports](https://github.com/trycatchh/lower/blob/fc2307e7e325985ee733444f018aa8c6f6b8fa34/html_handler.c#L159)
 
 ## How to Use?
 If you have included LowerWF in your project later, compile it with your own build technique. But if you are using the project template, follow this path:
