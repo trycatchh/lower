@@ -1,15 +1,17 @@
 #include "run.h"
-#include <asm-generic/socket.h>
-#include <netinet/in.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <pthread.h>
 
-static int http_redirect_port = 8081;
+static int http_redirect_port = 8080;
 
 void use_static_files();
+void start_redirector(void);
 
-int lw_run(int port) {    
+int lw_run(int port) {
+ 
+    if (LW_SSL_ENABLED == 1) start_redirector(); 
+
     struct sockaddr_in address;
     int addr_len = sizeof(address);
     char buffer[BUFFER_SIZE] = {0};

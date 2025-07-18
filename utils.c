@@ -185,7 +185,19 @@ int parameter_controller(int argc, char *argv[])
         }
     }
 
+    
+
     (LW_CERT == 1 && LW_KEY == 1) ? LW_SSL_ENABLED = 1 : LW_SSL_ENABLED == 0;
+  
+    if (LW_DEV_MODE) {
+        start_live_reload_server(8181, "./public");
+    } else if (LW_SSL_ENABLED == 1) {
+        SSL_load_error_strings();
+        OpenSSL_add_ssl_algorithms();
+        init_openssl();
+        ssl_ctx = create_ssl_ctx();
+        configure_ssl_ctx(ssl_ctx, LW_CERT_FILE, LW_KEY_FILE);
+    }
 
     return 0;
 }

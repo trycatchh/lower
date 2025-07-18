@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
 
 #define MAX_HEADERS       50
 #define MAX_ROUTES        100
