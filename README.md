@@ -21,7 +21,7 @@ Lower Framework is a lightweight, modular web framework written in C that speeds
 
 ## Getting Started
 ### Use LW Structure
-[Copy the project](https://github.com/trycatchh/lower.git) directly and stand it up. All the structures that should be in the project will come, just commit your project on it.
+[Copy the project](https://github.com/trycatchh/lower/archive/refs/heads/main.zip) directly and stand it up. All the structures that should be in the project will come, just commit your project on it.
 
 ### Include Your Project
 Include basic modules for run
