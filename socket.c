@@ -252,3 +252,15 @@ void start_redirector(void) {
     pthread_create(&tid, NULL, redirect_worker, NULL);
     pthread_detach(tid);
 }
+
+/* socket.c 19/07/2025 Review
+ * Ok so, there's nothing to really be changed i guess ?
+ * I/we need to only edit the HTTP redirector.
+ * Soo, what i am/we are going to do is basically, it will redirect all HTTP ports to HTTPS.
+ * @p0unter said that if you capture the users port, then you can redirect it.
+ * But there's a little problem within that, in socket programming, when you get the clients port address, it's not the real one. (Actually it is, but it's complicated)
+ * So as an example, a user is connecting to 'http://localhost:8080' we know that the user send a request to 8080 right ? 
+ * Yes, the client sends a request to 8080 port, but the clients file descriptor is not in the 8080 port.
+ * That's a big problem, because you can't directly get a clients port address, only the file descriptors port, and it's always random.
+ * TODO : Fix the redirection issue (Multiple ports.)
+*/

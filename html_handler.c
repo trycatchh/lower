@@ -167,3 +167,8 @@ void use_static_files() {
     lw_route(GET, "/media/", static_file_handler);
     lw_route(GET, "/favicon.ico", static_file_handler);
 }
+
+/* html_handler.c 19/07/2025 Review 
+ * Ok so this time the codebase is not that messed up. It's more cleaner, and readable.
+ * The only thing to fix is that the 'chuncked streaming' doesn't works. (It's for hot reload)
+ * TODO : Fix the chunked stream. (Hot reload) */

@@ -214,3 +214,14 @@ void print_help()
     printf("-k : Allows you to add a private key file for using HTTPS within TSL/SSL (You need -c parameter too.)\n");
     printf("\n\nTryCatch™ - @mal1kore1ss & @p0unter");
 }
+
+/* utils.c 19/07/2025 Review
+ * Ok, so i want to change the parameter controller, but you can ask why ?
+ * The method that i used works with chars, if you don't know what chars are, they are basically just one letter(character)
+ * I added long options you can use -help and stuff, but it's just a copy, as an example we have -d and -dev.
+ * If you use -dev it will do the same thing as -d, it's connected/related to -d parameter. 
+ * If there's not a -d parameter, then it will not work 
+ * The problem is that, this project is always developing, and i don't want to always use chars.
+ * As an example, -h for help or -h for host ? It's pretty weird and unselectable right ?
+ * So, in the future i'm going to rewrite the parameter controller.
+ * TODO : Rewrite the parameter controller.*/

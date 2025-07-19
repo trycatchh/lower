@@ -244,3 +244,10 @@ void start_live_reload_server(int unused, const char* watch_dir)
 
     printf("[DEV] Live reload system started\n");
 }
+
+/* hot_reload.c 19/07/2025 Review
+ * The codebase is not clean, it's too messed up.
+ * It doesn't works.
+ * I mean if a guy that doesn't know C in a really advanced way, he probably wouldn't understand 70% of the things here. 
+ * TODO : Fix hot reload & made the codebase cleaner.
+ * */
