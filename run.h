@@ -16,6 +16,7 @@
 #define MAX_ROUTES        100
 #define BUFFER_SIZE       4096
 #define MAX_PATH_LENGTH   256
+#define MAX_WATCH_DESCRIPTORS 256
 
 // Global constants
 extern int LW_PORT;
@@ -24,7 +25,7 @@ extern int LW_DEV_MODE;
 extern int LW_SSL_SECLVL;
 extern int LW_CERT;
 extern int LW_KEY;
-extern int LW_SSL_ENABLED; 
+extern int LW_SSL_ENABLED;
 extern const char* LW_CERT_FILE;
 extern const char* LW_KEY_FILE;
 extern SSL *LW_SSL;
@@ -77,7 +78,24 @@ typedef struct {
     pthread_mutex_t chunked_mutex;
 } chunked_state_t;
 
+typedef struct {
+    int wd;
+    char path[256];
+} watch_descriptor_t;
+
+typedef struct {
+    watch_descriptor_t watch_descriptors[MAX_WATCH_DESCRIPTORS];
+    int watch_count;
+    pthread_mutex_t watch_mutex;
+    int inotify_fd;
+    volatile int shutdown_requested;
+    volatile int reload_needed;
+    int reload_pipe[2];
+    time_t last_change_time;
+} HotReloadState;
+
 extern chunked_state_t chunked_state;
+extern HotReloadState hot_reload_state;
 
 // Global context
 extern lw_context_t lw_ctx;
@@ -114,5 +132,7 @@ void init_openssl();
 void cleanup_openssl();
 SSL_CTX* create_ssl_ctx();
 void configure_ssl_ctx(SSL_CTX* ctx, const char* cert_file, const char* key_file);
+
+int get_reload_pipe_fd(void);
 
 #endif

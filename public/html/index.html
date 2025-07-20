@@ -19,52 +19,6 @@
         </div>
     </div>
 
-    <!-- For Dev Mod 
-    <script>
-        (function () {
-            if (window.location.hostname !== 'localhost' &&
-                window.location.hostname !== '127.0.0.1') {
-                return;
-            }
-
-            const isSecure = window.location.protocol === 'https:';
-            const wsProtocol = isSecure ? 'wss://' : 'ws://';
-            const wsPort = parseInt(window.location.port) + 1000;
-            const wsUrl = `${wsProtocol}${window.location.hostname}:${wsPort}`;
-
-            console.log('[DEV] Connecting to:', wsUrl);
-            let reconnectAttempts = 0;
-
-            function connect() {
-                const ws = new WebSocket(wsUrl);
-
-                ws.onopen = () => {
-                    console.log('[DEV] WebSocket connected');
-                    reconnectAttempts = 0;
-                };
-
-                ws.onmessage = (event) => {
-                    if (event.data === 'reload') {
-                        console.log('[DEV] Reloading page...');
-                        window.location.reload(true); // Cache bypass
-                    }
-                };
-
-                ws.onclose = () => {
-                    const delay = Math.min(3000, 1000 * Math.pow(2, reconnectAttempts));
-                    console.log(`[DEV] WebSocket closed. Reconnecting in ${delay}ms...`);
-                    setTimeout(connect, delay);
-                    reconnectAttempts++;
-                };
-
-                ws.onerror = (error) => {
-                    console.error('[DEV] WebSocket error:', error);
-                };
-            }
-
-            connect();
-        })();
-    </script> -->
     <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
     <script src="../js/app.js"></script>
 </body>
