@@ -167,13 +167,13 @@ void static_file_handler(http_request_t *req, http_response_t *res) {
 }
 
 void use_static_files() {
-    lw_route(GET, "/css/*", static_file_handler);
-    lw_route(GET, "/js/*", static_file_handler);
-    lw_route(GET, "/img/*", static_file_handler);
-    lw_route(GET, "/images/*", static_file_handler);
-    lw_route(GET, "/fonts/*", static_file_handler);
-    lw_route(GET, "/assets/*", static_file_handler);
-    lw_route(GET, "/uploads/*", static_file_handler);
-    lw_route(GET, "/media/*", static_file_handler);
+    lw_route(GET, "/css/", static_file_handler);
+    lw_route(GET, "/js/", static_file_handler);
+    lw_route(GET, "/img/", static_file_handler);
+    lw_route(GET, "/images/", static_file_handler);
+    lw_route(GET, "/fonts/", static_file_handler);
+    lw_route(GET, "/assets/", static_file_handler);
+    lw_route(GET, "/uploads/", static_file_handler);
+    lw_route(GET, "/media/", static_file_handler);
     lw_route(GET, "/favicon.ico", static_file_handler);
 }

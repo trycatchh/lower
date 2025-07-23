@@ -1,10 +1,8 @@
 #include "run.h"
 
-#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <limits.h>
 
 chunked_state_t chunked_state = {
@@ -53,139 +51,50 @@ route_t *find_route(http_method_t method, const char *path)
     return NULL;
 }
 
-static int safe_strtoi(const char *str, int min, int max)
-{
-    char *endptr;
-    long value;
-
-    if (!str)
-        return -1;
-
-    errno = 0;
-    value = strtol(str, &endptr, 10);
-
-    if (errno != 0 || *endptr != '\0')
-    {
-        return -1;
-    }
-
-    if (value < min || value > max)
-    {
-        return -1;
-    }
-
-    return (int)value;
+int match_option(const char *arg, const char *short_opt, const char *long_opt) {
+    return (strcmp(arg, short_opt) == 0 || strcmp(arg, long_opt) == 0);
 }
 
 int parameter_controller(int argc, char *argv[])
 {
-    LW_PORT = 8080;
-    LW_VERBOSE = 0;
-    LW_DEV_MODE = 0;
-
-    int opt;
-    int temp_val;
-    int option_index = 0;
-
-    static struct option long_options[] = {
-        {"port", required_argument, 0, 'p'},
-        {"cert", required_argument, 0, 'c'},
-        {"key", required_argument, 0, 'k'},
-        {"help", no_argument, 0, '?'},
-        {"verbose", no_argument, 0, 'v'},
-        {"dev", no_argument, 0, 'd'},
-        {0, 0, 0, 0}};
-
-    optind = 1;
-    opterr = 0;
-
-    while ((opt = getopt_long(argc, argv, "p:c:k:vd", long_options, &option_index)) != -1)
-    {
-        switch (opt)
-        {
-        case 'p':
-            if (!optarg)
-            {
-                fprintf(stderr, "[ERR] Port option requires a value\n");
-                fprintf(stderr, "[ERR] Usage: %s [-p port].\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-p 8080] or [-p8080]\n", argv[0]);
-                exit(EXIT_FAILURE);
-            }
-
-            temp_val = safe_strtoi(optarg, 1, 65535);
-            if (temp_val == -1)
-            {
-                fprintf(stderr, "[ERR] Invalid port: '%s' (must be 1-65535)\n", optarg);
-                fprintf(stderr, "[ERR] Usage: %s [-p port]\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-p 8080] or [-p8080]\n", argv[0]);
-                exit(EXIT_FAILURE);
+    for (int i = 1;i < argc;i++) {
+        if (match_option(argv[i], "-h", "--help")) {
+            print_help();
+            exit(EXIT_SUCCESS);
+        } else if (match_option(argv[i], "-v", "--verbose")) {
+            LW_VERBOSE = 1;
+        } else if (match_option(argv[i], "-p", "--port")) {
+            int temp_val = atoi(argv[++i]);
+            
+            if (i >= argc) {
+                fprintf(stderr, "[ERR] %s requires a value\n", argv[--i]);
+                return -1;
+            } else if (temp_val > 65535 || temp_val < 0) {
+                fprintf(stderr, "[ERR] %s must be a positive value between 0-65535", argv[i]);
+                return -1;
             }
 
             LW_PORT = temp_val;
-            break;
-        case 'v':
-            LW_VERBOSE = 1;
-            break;
-        case '?':
-            if (optopt == 'p')
-            {
-                fprintf(stderr, "[INFO] -p <port>\n");
-                fprintf(stderr, "[INFO] Example: %s [-p 8080] or [-p8080]\n", argv[0]);
-                exit(EXIT_FAILURE);
-            } else if (optopt == 'c') {
-                fprintf(stderr, "[INFO] -c <certificate_file>\n");
-                fprintf(stderr, "[INFO] Example: %s [-c server.crt] or [-cserver.crt]", argv[0]);
-                exit(EXIT_FAILURE);
-            } else {
-                print_help();
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case 'd':
+        } else if (match_option(argv[i], "-dev", "--developer"))  {
             LW_DEV_MODE = 1;
-            printf("[LW] Development Mode enabled (Hot Refresh)\n");
-            break;
-        case 'c':
-            if (!optarg)
-            {
-                fprintf(stderr, "[ERR] Certificate option requires a value\n");
-                fprintf(stderr, "[ERR] Usage: %s [-c certificate_file]\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-c server.crt] or [-cserver.crt]\n", argv[0]);
-                exit(EXIT_FAILURE);
-            } else if (optarg == NULL) {
-                fprintf(stderr, "[ERR] Invalid usage: '%s'\n", optarg);
-                fprintf(stderr, "[ERR] Usage: %s [-c certificate_file]\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-c server.crt] or [-cserver.crt]\n", argv[0]); 
-                exit(EXIT_FAILURE);
+        } else if (match_option(argv[i], "-ck", "--certificate-key")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "[ERR] %s requires a value\n", argv[i]);
+                return -1;
             }
-
-            LW_CERT_FILE = optarg;
+            LW_CERT_FILE = argv[++i];
             LW_CERT = 1;
-            break;
-        case 'k':
-            if (!optarg)
-            {
-                fprintf(stderr, "[ERR] Private key option requires a value\n");
-                fprintf(stderr, "[ERR] Usage: %s [-k key_file]\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-k server.key] or [-cserver.key]\n", argv[0]);
-                exit(EXIT_FAILURE);
-            } else if (optarg == NULL) {
-                fprintf(stderr, "[ERR] Invalid usage: '%s'\n", optarg);
-                fprintf(stderr, "[ERR] Usage: %s [-k key_file]\n", argv[0]);
-                fprintf(stderr, "[INFO] Example: %s [-k server.key] or [-kserver.key]\n", argv[0]); 
-                exit(EXIT_FAILURE);
+        } else if (match_option(argv[i], "-pk", "--private-key")) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "[ERR] %s requires a value\n", argv[i]);
+                return -1;
             }
-
-            LW_KEY_FILE = optarg;
+            LW_KEY_FILE = argv[++i];
             LW_KEY = 1;
-            break;
-        default:
-            fprintf(stderr, "[ERR] Usage: %s [-p port] [-v] [-d]\n", argv[0]);
-            exit(EXIT_FAILURE);
+        } else if (match_option(argv[i], "-c", "--compress")) {
+            LW_COMPRESS = 1;
         }
-    }
-
-    
+    } 
 
     (LW_CERT == 1 && LW_KEY == 1) ? LW_SSL_ENABLED = 1 : LW_SSL_ENABLED == 0;
   
@@ -210,18 +119,10 @@ void print_help()
     printf("-p <port> : Allows you to select a custom port other than 8080\n");
     printf("-d : Development mode (if change files content refresh current page)\n");
     printf("-v : Allows you to open verbose mode to get more detailed information\n");
-    printf("-c : Allows you to add a certificate file for using HTTPS within TSL/SSL (You need -k parameter too.)\n");
-    printf("-k : Allows you to add a private key file for using HTTPS within TSL/SSL (You need -c parameter too.)\n");
+    printf("-ck : Allows you to add a certificate file for using HTTPS within TSL/SSL (You need -pk parameter too.)\n");
+    printf("-pk : Allows you to add a private key file for using HTTPS within TSL/SSL (You need -ck parameter too.)\n");
     printf("\n\nTryCatch™ - @mal1kore1ss & @p0unter");
 }
 
-/* utils.c 19/07/2025 Review
- * Ok, so i want to change the parameter controller, but you can ask why ?
- * The method that i used works with chars, if you don't know what chars are, they are basically just one letter(character)
- * I added long options you can use -help and stuff, but it's just a copy, as an example we have -d and -dev.
- * If you use -dev it will do the same thing as -d, it's connected/related to -d parameter. 
- * If there's not a -d parameter, then it will not work 
- * The problem is that, this project is always developing, and i don't want to always use chars.
- * As an example, -h for help or -h for host ? It's pretty weird and unselectable right ?
- * So, in the future i'm going to rewrite the parameter controller.
- * TODO : Rewrite the parameter controller.*/
+/* utils.c 23/07/2025 Review
+ * Rewrote the parameter controller. */

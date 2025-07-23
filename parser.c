@@ -12,50 +12,87 @@ http_method_t parse_method(const char *method_str) {
 }
 
 void parse_request(const char *raw_request, http_request_t *request) {
-    char *request_copy = malloc(strlen(raw_request) + 1);
-    strcpy(request_copy, raw_request);
+    const char *current = raw_request;
+    const char *line_end;
+    char line_buffer[2048];
     
-    // Parse request line
-    char *line = strtok(request_copy, "\r\n");
-    if (line) {
-        char *method_str = strtok(line, " ");
-        char *path_str = strtok(NULL, " ");
-        
-        if (method_str) {
-            request->method = parse_method(method_str);
-        }
-        
-        if (path_str) {
-            // Check for query string
-            char *query_start = strchr(path_str, '?');
-            if (query_start) {
-                *query_start = '\0';
-                query_start++;
-                request->query_string = malloc(strlen(query_start) + 1);
-                strcpy(request->query_string, query_start);
-            }
-            
-            request->path = malloc(strlen(path_str) + 1);
-            strcpy(request->path, path_str);
-        }
+    // Initialize request
+    memset(request, 0, sizeof(*request));
+    
+    // Parse request line (first line)
+    line_end = strstr(current, "\r\n");
+    if (!line_end) return;
+    
+    size_t line_len = line_end - current;
+    if (line_len >= sizeof(line_buffer)) line_len = sizeof(line_buffer) - 1;
+    strncpy(line_buffer, current, line_len);
+    line_buffer[line_len] = '\0';
+    
+    // Parse method, path, and version from request line
+    char *method_str = strtok(line_buffer, " ");
+    char *path_str = strtok(NULL, " ");
+    char *version_str = strtok(NULL, " ");
+    
+    if (method_str) {
+        request->method = parse_method(method_str);
     }
+    
+    if (path_str) {
+        // Check for query string
+        char *query_start = strchr(path_str, '?');
+        if (query_start) {
+            *query_start = '\0';
+            query_start++;
+            request->query_string = malloc(strlen(query_start) + 1);
+            strcpy(request->query_string, query_start);
+        }
+        
+        request->path = malloc(strlen(path_str) + 1);
+        strcpy(request->path, path_str);
+    }
+    
+    // Move to next line
+    current = line_end + 2; // Skip \r\n
     
     // Parse headers
     request->header_count = 0;
-    while ((line = strtok(NULL, "\r\n")) && strlen(line) > 0 && request->header_count < MAX_HEADERS) {
-        request->headers[request->header_count] = malloc(strlen(line) + 1);
-        strcpy(request->headers[request->header_count], line);
-        request->header_count++;
+    while (*current && request->header_count < MAX_HEADERS) {
+        line_end = strstr(current, "\r\n");
+        if (!line_end) break;
+        
+        line_len = line_end - current;
+        
+        // Empty line indicates end of headers
+        if (line_len == 0) {
+            current = line_end + 2; // Skip \r\n
+            break;
+        }
+        
+        // Copy header line
+        if (line_len >= sizeof(line_buffer)) line_len = sizeof(line_buffer) - 1;
+        strncpy(line_buffer, current, line_len);
+        line_buffer[line_len] = '\0';
+        
+        // Check if it's a valid header (contains colon)
+        if (strchr(line_buffer, ':')) {
+            request->headers[request->header_count] = malloc(strlen(line_buffer) + 1);
+            strcpy(request->headers[request->header_count], line_buffer);
+            request->header_count++;
+        }
+        
+        // Move to next line
+        current = line_end + 2; // Skip \r\n
     }
     
-    // Parse body
-    if (line && (line = strtok(NULL, "\0"))) {
-        request->body_length = strlen(line);
-        request->body = malloc(request->body_length + 1);
-        strcpy(request->body, line);
+    // Parse body (if any)
+    if (*current) {
+        size_t body_len = strlen(current);
+        if (body_len > 0) {
+            request->body_length = body_len;
+            request->body = malloc(body_len + 1);
+            strcpy(request->body, current);
+        }
     }
-    
-    free(request_copy);
 }
 
 void free_request(http_request_t *request) {

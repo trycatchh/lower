@@ -3,6 +3,7 @@
 #include <openssl/ssl.h>
 #include <pthread.h>
 #include <time.h>
+#include <strings.h>
 
 extern HotReloadState hot_reload_state;
 static int http_redirect_port = 8080;
@@ -42,7 +43,7 @@ int lw_run(int port) {
         return -1;
     }
 
-    // Set socket options
+    // Set socket options=
     int opt = 1;
     if (setsockopt(lw_ctx.server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
         perror("[ERR] Setsockopt failed");
@@ -141,9 +142,9 @@ int lw_run(int port) {
 
             while (total < BUFFER_SIZE - 1) {
             if (LW_SSL_ENABLED == 1 && client_ssl) {
-                bytes_read = SSL_read(client_ssl, buffer + total, 1);
+                bytes_read = SSL_read(client_ssl, buffer + total,BUFFER_SIZE - total - 1);
             } else {
-                bytes_read = read(client_socket, buffer + total, 1);
+                bytes_read = read(client_socket, buffer + total,BUFFER_SIZE - total - 1);
             }
 
             if (bytes_read <= 0) break;          /* EOF or error */
@@ -185,6 +186,18 @@ int lw_run(int port) {
             http_request_t request = {0};
             parse_request(buffer, &request);
 
+            (LW_VERBOSE) ? printf("[INFO] Found %d headers\n", request.header_count) : -1;
+            for (int i = 0; i < request.header_count; ++i) {
+                (LW_VERBOSE) ? printf("[INFO] Header[%d]: \"%s\"\n", i, request.headers[i]) : -1;
+                const char *hdr = request.headers[i];
+                if (hdr && strncasecmp(hdr, "Accept-Encoding:", 16) == 0) {
+                    ACCEPT_ENCODING = hdr + 16;
+                    while (*ACCEPT_ENCODING == ' ' || *ACCEPT_ENCODING == '\t' || *ACCEPT_ENCODING == ':')
+                        ++ACCEPT_ENCODING;
+                    break;
+                }
+            }
+
             // Find route
             route_t *route = find_route(request.method, request.path);
 
@@ -211,7 +224,7 @@ int lw_run(int port) {
             if (response.chunked_fd >= 0) {
                 // Chunked path keeps socket open for SSE //
             } else {
-                lw_send_response(&response, client_socket, client_ssl);
+                lw_send_response(&response, client_socket, client_ssl, ACCEPT_ENCODING);
                 if (client_ssl) {
                     SSL_shutdown(client_ssl);
                     SSL_free(client_ssl);

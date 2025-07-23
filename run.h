@@ -11,6 +11,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
+#include <zstd.h>
 
 #define MAX_HEADERS       50
 #define MAX_ROUTES        100
@@ -26,8 +27,10 @@ extern int LW_SSL_SECLVL;
 extern int LW_CERT;
 extern int LW_KEY;
 extern int LW_SSL_ENABLED;
+extern int LW_COMPRESS;
 extern const char* LW_CERT_FILE;
 extern const char* LW_KEY_FILE;
+extern char *ACCEPT_ENCODING;
 extern SSL *LW_SSL;
 extern SSL_CTX *ssl_ctx;
 
@@ -103,7 +106,7 @@ extern lw_context_t lw_ctx;
 // Functions
 int  lw_run(int port);
 void lw_route(http_method_t method, const char *path, route_handler_t handler);
-void lw_send_response(http_response_t *response, int client_socket, SSL *client_ssl);
+void lw_send_response(http_response_t *response, int client_socket, SSL *client_ssl, const char *accept_encoding);
 void lw_set_header(http_response_t *response, const char *header);
 void lw_set_body(http_response_t *response, const char *body);
 void lw_set_body_bin(http_response_t *response, const char *body, size_t length);
