@@ -4,6 +4,15 @@
 #include <pthread.h>
 #include <time.h>
 #include <strings.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 extern HotReloadState hot_reload_state;
 static int http_redirect_port = 8080;
