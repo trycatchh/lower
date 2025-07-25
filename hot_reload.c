@@ -119,7 +119,7 @@ static void* file_watcher_thread(void* arg) {
 
     printf("[DEV] Starting file watcher for: %s\n", watch_dir);
 
-    hot_reload_state.inotify_fd = inotify_init();
+    hot_reload_state.inotify_fd = inotify_init1(IN_NONBLOCK); // Non-blocking
     if (hot_reload_state.inotify_fd < 0) {
         printf("[ERR] inotify_init failed: %s\n", strerror(errno));
         return NULL;
@@ -139,8 +139,8 @@ static void* file_watcher_thread(void* arg) {
         
         FD_ZERO(&read_fds);
         FD_SET(hot_reload_state.inotify_fd, &read_fds);
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
+        timeout.tv_sec = 0;  // Non-blocking timeout
+        timeout.tv_usec = 500000; // 500ms
 
         int ready = select(hot_reload_state.inotify_fd + 1, &read_fds, NULL, NULL, &timeout);
         if (ready < 0) {
@@ -149,10 +149,17 @@ static void* file_watcher_thread(void* arg) {
             break;
         }
         
-        if (ready == 0) continue; // timeout
+        if (ready == 0) {
+            // Timeout
+            usleep(100000); // 100ms
+            continue; 
+        }
 
         int length = read(hot_reload_state.inotify_fd, buffer, INOTIFY_BUF_LEN);
         if (length < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue; // No data available
+            }
             if (errno == EINTR) continue;
             printf("[ERR] inotify read failed: %s\n", strerror(errno));
             break;
@@ -176,7 +183,7 @@ static void* file_watcher_thread(void* arg) {
             }
 
             if ((event->mask & IN_CREATE) && (event->mask & IN_ISDIR)) {
-                char new_dir[512];
+                char new_dir[512] = {0};
                 pthread_mutex_lock(&hot_reload_state.watch_mutex);
                 for (int j = 0; j < hot_reload_state.watch_count; j++) {
                     if (hot_reload_state.watch_descriptors[j].wd == event->wd) {
